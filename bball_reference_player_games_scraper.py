@@ -147,6 +147,8 @@ def player_logs_scraper(season_, month_, out_path_):
     assert df.shape[0] == check_rows, 'Shape of dataframe changed incorrectly'
     
     # write to csv
+    if(month_ < 7):
+        season_ += 1
     df.to_csv(out_path_ + 'player_games_' + str(season_) + str(month_) + '.csv', index = False)
     print('DATA FORMATTED AND SAVED. SHAPE: ', df.shape)
 
