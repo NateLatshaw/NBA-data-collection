@@ -5,7 +5,8 @@ library(data.table)
 
 # select season
 
-season <- '2018_2019'
+season <- 2010
+season <- paste0(season, '_', season + 1)
 
 # set paths
 
@@ -28,6 +29,9 @@ mungeFiles <- function(data_path, season_){
     tmp <- fread(paste0(path_, file_))
     df_ <- rbind(df_, tmp)
   }
+  # change CHO to CHA
+  df_[TEAM == 'CHO', TEAM := 'CHA']
+  df_[OPPONENT == 'CHO', OPPONENT := 'CHA']
   # perform basic data quality checks
   stopifnot(df_[, .(TotalMin = sum(MIN)), by = .(TEAM, GAMEDATE)][TotalMin < 235, .N] == 0)
   # change '-' in FG% fields to NA, then change columns to numeric
@@ -41,18 +45,19 @@ mungeFiles <- function(data_path, season_){
   df_[, GAMEDATE := GAMEDATE2]
   df_[, GAMEDATE2 := NULL]
   stopifnot(df_[is.na(GAMEDATE), .N] == 0)
-  # add AWAY field
-  df_[, AWAY := HOME == FALSE]
-  # change HOME and AWAY to be the team names
+  # change HOME to be the team name
   df_[, HOME := as.character(HOME)]
-  df_[, AWAY := as.character(AWAY)]
-  df_[HOME == 'TRUE', `:=`(HOME = TEAM, AWAY = OPPONENT)]
-  df_[HOME == 'FALSE', `:=`(HOME = OPPONENT, AWAY = TEAM)]
+  df_[HOME == 'TRUE', HOME := TEAM]
+  df_[HOME == 'FALSE', HOME := OPPONENT]
   # add season
   df_[, Season := season_]
-  # change CHO to CHA
-  df_[TEAM == 'CHO', TEAM := 'CHA']
-  df_[OPPONENT == 'CHO', OPPONENT := 'CHA']
+  # add GameID
+  df_[TEAM == HOME, GameID := paste0(OPPONENT, '@', TEAM, ' ', GAMEDATE)]
+  df_[OPPONENT == HOME, GameID := paste0(TEAM, '@', OPPONENT, ' ', GAMEDATE)]
+  stopifnot(df_[is.na(GameID), .N] == 0)
+  # add Winner
+  df_[WL == 'W', Winner := TEAM]
+  df_[WL == 'L', Winner := OPPONENT]
   # return full table
   return(df_)
 }
@@ -71,7 +76,8 @@ DKpoints <- function(df_){
 # function to collapse player logs and create team game logs
 
 teamGameLogs <- function(df_){
-  df_2 <- unique(df_[, .(OPPONENT = unique(OPPONENT), WL, DKpoints = sum(DKpoints), MIN = sum(MIN), 
+  df_2 <- unique(df_[, .(GameID = unique(GameID), Season = unique(Season), OPPONENT = unique(OPPONENT), HOME = unique(HOME), 
+                         WL = unique(WL), Winner = unique(Winner), DKpoints = sum(DKpoints), MIN = sum(MIN), 
                          PTS = sum(PTS), FGM = sum(FGM), FGA = sum(FGA), 
                          FGPERC = 100 * sum(FGM) / sum(FGA), MADE3S = sum(MADE3S), ATTEMPT3S = sum(ATTEMPT3S), 
                          PERC3S = 100 * sum(MADE3S) / sum(ATTEMPT3S), FTM = sum(FTM), FTA = sum(FTA), 
@@ -85,9 +91,13 @@ teamGameLogs <- function(df_){
   # create conceded stats
   concede <- copy(df_2)
   concede[, TEAM := OPPONENT]
+  concede[, GameID := NULL]
   concede[, WL := NULL]
+  concede[, Winner := NULL]
   concede[, OPPONENT := NULL]
   concede[, GameNum := NULL]
+  concede[, HOME := NULL]
+  concede[, Season := NULL]
   cols <- setdiff(names(concede), c('TEAM', 'GAMEDATE'))
   setnames(concede, cols, paste0('OPP_', cols))
   df_2 <- merge(df_2, concede, by = c('TEAM', 'GAMEDATE'))
@@ -99,10 +109,10 @@ teamGameLogs <- function(df_){
 
 AdvancedTeamStats <- function(teams_){
   # Possessions = FGA - (OREB)/(OREB + Opp DREB) * (FGA - FGM) * 1.07 + TO  + .4 * FTA
-  teams_[, Possessions := FGA - (OREB)/(OREB + OPP_DREB) * (FGA - FGM) * 1.07 + TO  + .4 * FTA]
+  teams_[, Possessions := .5 * ((FGA - (OREB)/(OREB + OPP_DREB) * (FGA - FGM) * 1.07 + TO  + .4 * FTA) + 
+           (OPP_FGA - (OPP_OREB)/(OPP_OREB + DREB) * (OPP_FGA - OPP_FGM) * 1.07 + OPP_TO  + .4 * OPP_FTA))]
   # opponent possessions
-  teams_[, Opp_Possessions := OPP_FGA - (OPP_OREB)/(OPP_OREB + DREB) * (OPP_FGA - OPP_FGM) * 1.07 + 
-           OPP_TO  + .4 * OPP_FTA]
+  teams_[, Opp_Possessions := Possessions]
   # OffRtg = 100 * PTS / Possessions = opponent defensive rating
   teams_[, OffRtg := 100 * PTS / Possessions]
   teams_[, Opp_DefRtg := OffRtg]
