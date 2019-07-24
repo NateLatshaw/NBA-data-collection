@@ -7,6 +7,20 @@ from bball_reference_player_games_scraper import player_logs_scraper
 
 #########################################################################################################
 
+# scrape 2009-2010 season
+#season = 2009
+#out_path = 'E:/NBA data collection/Data/Basketball Reference Player Game Logs/season_2009_2010/'
+
+#player_logs_scraper(season_ = season, month_ = 10, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 11, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 12, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 1, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 2, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 3, out_path_ = out_path)
+#player_logs_scraper(season_ = season, month_ = 4, out_path_ = out_path)
+
+#########################################################################################################
+
 # scrape 2010-2011 season
 #season = 2010
 #out_path = 'E:/NBA data collection/Data/Basketball Reference Player Game Logs/season_2010_2011/'

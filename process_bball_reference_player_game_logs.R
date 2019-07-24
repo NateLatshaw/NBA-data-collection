@@ -5,7 +5,7 @@ library(data.table)
 
 # select season
 
-season <- 2010
+season <- 2009
 season <- paste0(season, '_', season + 1)
 
 # set paths

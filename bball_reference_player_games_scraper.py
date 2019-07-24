@@ -28,12 +28,11 @@ def player_logs_scraper(season_, month_, out_path_):
               'season_end=-1&pos_is_g=Y&pos_is_gf=Y&pos_is_f=Y&pos_is_fg=Y&pos_is_fc=Y&pos_is_c=Y&pos_is_cf=Y&' + \
               'order_by=date_game&order_by_asc=Y&offset=' + str(counter)
         # some months have different URLs
-        if (season_ == 2013 & (month_ == 11 | month_ == 3)) | \
+        if (season_ == 2010 & (month_ == 1 | month_ == 2)) | \
+        (season_ == 2013 & (month_ == 11 | month_ == 3)) | \
         (season_ == 2014 & (month_ == 3)) | \
         (season_ == 2017 & (month_ == 3 | month_ == 4)) | \
-        (season_ == 2016 & (month_ == 11 | month_ == 12)) | \
-        (season_ == 2018 & (month_ == 1) | \
-        (season_ == 2010 & (month_ == 1 | month_ == 2))):
+        (season_ == 2016 & (month_ == 11 | month_ == 12)):
             url = 'https://www.basketball-reference.com/play-index/pgl_finder.cgi?request=1&player_id=&' + \
             'match=game&year_min=' + str(url_season) + '&year_max=' + str(url_season) + \
             '&age_min=0&age_max=99&team_id=&opp_id=&season_start=1&season_end=-1&is_playoffs=N&draft_year=' + \
