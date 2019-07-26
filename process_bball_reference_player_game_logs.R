@@ -2,15 +2,18 @@
 rm(list = ls())
 gc()
 library(data.table)
+library(stringr)
 
 # select season
 
-season <- 2009
+season <- 2018
 season <- paste0(season, '_', season + 1)
 
 # set paths
 
-in_path <- paste0('E:/NBA data collection/Data/Basketball Reference Player Game Logs/')
+in_path <- 'E:/NBA data collection/Data/Basketball Reference Player Game Logs/'
+money_lines_path <- 'E:/NBA data collection/Data/OddsPortal NBA Money Lines/Hand Corrected/'
+money_line_teams_path <- 'E:/NBA data collection/Data/OddsPortal NBA Money Lines/Teams/'
 out_path <- 'E:/NBA data collection/Data/Processed Basketball Reference Player Game Logs/'
 
 #########################################################################################################
@@ -147,6 +150,54 @@ AdvancedPlayerStats <- function(players_, teams_){
   return(players_)
 }
 
+# function to merge money lines onto teams table
+
+MergeMoneyLines <- function(teams_, ml_path_, teams_path_){
+  # read in team names to abbreviations dictionary
+  team_names <- fread(paste0(teams_path_, 'team_names.csv'))
+  if(season %in% c('2009_2010', '2010_2011', '2011_2012')){
+    team_names[Abbreviation == 'BRK', Abbreviation := 'NJN']
+    team_names[Abbreviation == 'NOP', Abbreviation := 'NOH']
+  }
+  if(season %in% c('2012_2013')){
+    team_names[Abbreviation == 'NOP', Abbreviation := 'NOH']
+  }
+  # read in money lines
+  ml <- data.table()
+  for(file_ in list.files(ml_path_)){
+    tmp <- fread(paste0(money_lines_path, file_))
+    tmp[, Season := gsub('[^0-9]', '', file_)]
+    tmp[, Season := paste0(substr(Season, 1, 4), '_', substr(Season, 5, 8))]
+    ml <- rbind(ml, tmp)
+  }
+  # format money lines
+  ml <- ml[Scores != 'canc.']
+  ml[, Teams := iconv(Teams, 'UTF-8', 'UTF-8', sub = '')]
+  ml[, Scores := iconv(Scores, 'UTF-8', 'UTF-8', sub = '')]
+  ml[str_count(Scores, ':') == 2, Scores := substr(Scores, 1, 5)]
+  ml[, Scores := gsub('OT', '', Scores)]
+  ml[, Scores := gsub(' ', '', Scores)]
+  ml[, Team1 := gsub(' -.*', '', Teams)]
+  ml[, Score1 := as.numeric(gsub(':.*', '', Scores))]
+  ml[, Team2 := gsub(' .*-', '', Teams)]
+  ml[, Score2 := gsub('.*:', '', Scores)]
+  ml[, Score2 := as.numeric(gsub('[^0-9]', '', Score2))]
+  for(i in 1:team_names[, .N]){
+    ml[grepl(team_names[i, Team], Team1), Team1 := team_names[i, Abbreviation]]
+    ml[grepl(team_names[i, Team], Team2), Team2 := team_names[i, Abbreviation]]
+  }
+  # merge money lines onto teams data table
+  setkey(ml, Team1, Score1, Team2, Score2)
+  setkey(teams_, TEAM, PTS, OPPONENT, OPP_PTS)
+  teams_[ml, ML := i.ML1]
+  teams_[ml, Opp_ML := i.ML2]
+  setkey(ml, Team2, Score2, Team1, Score1)
+  setkey(teams_, TEAM, PTS, OPPONENT, OPP_PTS)
+  teams_[ml, ML := i.ML2]
+  teams_[ml, Opp_ML := i.ML1]
+  return(teams_)
+}
+
 #########################################################################################################
 
 # munge files from season
@@ -164,6 +215,10 @@ teams <- teamGameLogs(df_ = players)
 # add advanced team stats
 
 teams <- AdvancedTeamStats(teams_ = teams)
+
+# add money lines from OddsPortal
+
+teams <- MergeMoneyLines(teams_ = teams, ml_path_ = money_lines_path, teams_path_ = money_line_teams_path)
 
 # add advanced player stats
 
