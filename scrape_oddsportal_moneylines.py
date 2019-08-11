@@ -44,7 +44,7 @@ def RunScraper(year_, df_):
             break
         df_ = df_.append(tmp)
         time.sleep(8)
-    df_.columns = ['Teams', 'Scores', 'ML1', 'ML2']
+    df_.columns = ['Teams', 'Scores', 'ML_L', 'ML_W']
     return(df_)
 
 ##########################################################################################################
