@@ -54,6 +54,8 @@ for year in range(2008, 2019):
     print(year)
     all_data = pd.DataFrame()
     all_data = RunScraper(year_ = year, df_ = all_data)
+    if year in [2009, 2011, 2012, 2013, 2016]:
+        all_data.rename(columns = {'ML1':'ML2', 'ML2':'ML1'}, inplace = True)
     all_data.to_csv(output_path + 'OddsPortal_NBA_MoneyLines_' + str(year) + '_' + str(year + 1) + '.csv', \
                     index = False, encoding = 'utf-8')
 
