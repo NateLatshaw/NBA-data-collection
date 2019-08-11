@@ -19,13 +19,13 @@ def Scraper(year_, page_, base_url_ = base_url):
     # collect data
     teams = soup.find_all('td', {'class':'name table-participant'})
     scores = soup.find_all('td', {'class':'center bold table-odds table-score'})
-    ml1 = soup.find_all(lambda tag: tag.name == 'td' and tag.get('class') == ['odds-nowrp'])
-    ml2 = soup.find_all('td', {'class':'result-ok odds-nowrp'})
+    mlL = soup.find_all(lambda tag: tag.name == 'td' and tag.get('class') == ['odds-nowrp'])
+    mlW = soup.find_all('td', {'class':'result-ok odds-nowrp'})
     # pass data to dataframe
     df = pd.DataFrame()
     for i in range(0, len(teams)):
-        if len(ml1) == len(ml2):
-            df = df.append(pd.DataFrame([[teams[i].text, scores[i].text, ml1[i].text, ml2[i].text]]))
+        if len(mlL) == len(mlW):
+            df = df.append(pd.DataFrame([[teams[i].text, scores[i].text, mlL[i].text, mlW[i].text]]))
         else:
             # sometimes OddsPortal's HTML is messed up - this is a hack to not break the code
             # money lines of 0 can be hand corrected later
@@ -43,7 +43,7 @@ def RunScraper(year_, df_):
         if tmp.shape[0] == 0:
             break
         df_ = df_.append(tmp)
-        time.sleep(10)
+        time.sleep(8)
     df_.columns = ['Teams', 'Scores', 'ML1', 'ML2']
     return(df_)
 
@@ -54,8 +54,6 @@ for year in range(2008, 2019):
     print(year)
     all_data = pd.DataFrame()
     all_data = RunScraper(year_ = year, df_ = all_data)
-    if year in [2009, 2011, 2012, 2013, 2016]:
-        all_data.rename(columns = {'ML1':'ML2', 'ML2':'ML1'}, inplace = True)
     all_data.to_csv(output_path + 'OddsPortal_NBA_MoneyLines_' + str(year) + '_' + str(year + 1) + '.csv', \
                     index = False, encoding = 'utf-8')
 
